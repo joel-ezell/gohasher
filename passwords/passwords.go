@@ -1,6 +1,7 @@
 package passwords
 
 import (
+	"crypto/sha512"
 	"encoding/base64"
 	"errors"
 	"sync"
@@ -29,6 +30,7 @@ func getInstance() *passwords {
 	return instance
 }
 
+// HashAndStore Computes a SHA-512 hash of the specified password, encodes it in Base64, then stores the password in a map
 func HashAndStore(pwd string) (int, error) {
 	start := time.Now()
 	hashWg.Add(1)
@@ -39,8 +41,9 @@ func HashAndStore(pwd string) (int, error) {
 
 func hashWorker(index int, pwd string, start time.Time) {
 	time.Sleep(delaySecs * time.Second)
-	//TODO: add sha-512 hash
-	encodedPwd := base64.StdEncoding.EncodeToString([]byte(pwd))
+	sha := sha512.New()
+	sha.Write([]byte(pwd))
+	encodedPwd := base64.StdEncoding.EncodeToString(sha.Sum(nil))
 	p := getInstance()
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -50,6 +53,7 @@ func hashWorker(index int, pwd string, start time.Time) {
 	hashWg.Done()
 }
 
+// GetHashedPassword Returns the hashed password at the specified index
 func GetHashedPassword(index int) (string, error) {
 	p := getInstance()
 	hashedPwd := p.passMap[index]
@@ -61,6 +65,7 @@ func GetHashedPassword(index int) (string, error) {
 	return hashedPwd, err
 }
 
+// WaitToComplete Blocks until all worker Goroutines have completed
 func WaitToComplete() {
 	hashWg.Wait()
 }

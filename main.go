@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/joel-ezell/gohasher/handlers"
+	"github.com/joel-ezell/gohasher/passwords"
 )
+
+var srv http.Server
 
 func main() {
 	const defaultPort = "8080"
@@ -28,14 +32,27 @@ func main() {
 	* The passwords package features a singleton that maps the increment number (learned from the statistics package) to the hashed password
 	* Another singleton waitgroup exists. When a POST comes to the hash, the password package spins off a goroutine and adds the worker to
 	* the waitgroup. A call to a shutdown immediately stops the web server to prevent new requests from arriving. It then spins off a goroutine
-	* which waits for the group to complete. After it completes, the process exits.
+	* which waits for the group to complete. After it completes, the process exits
 	*
 	 */
 
+	srv := &http.Server{Addr: ":" + port}
 	http.HandleFunc("/hash", handlers.HashHandler)
+	http.HandleFunc("/hash/", handlers.HashHandler)
 	http.HandleFunc("/stats", handlers.StatsHandler)
-	http.HandleFunc("/shutdown", handlers.ShutdownHandler)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	http.HandleFunc("/shutdown", shutdownHandler)
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server listen error: %+v", err)
 	}
+}
+
+func shutdownHandler(w http.ResponseWriter, r *http.Request) {
+	srv.Shutdown(context.Background())
+	w.WriteHeader(http.StatusOK)
+	// w.Header().Set("Content-Type", "application/json")
+	// io.WriteString(w, `{"alive": true}`)
+	go func() {
+		passwords.WaitToComplete()
+		os.Exit(1)
+	}()
 }

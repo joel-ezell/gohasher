@@ -1,6 +1,8 @@
 package passwords
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"testing"
 	"time"
@@ -8,7 +10,7 @@ import (
 	"github.com/joel-ezell/gohasher/statistics"
 )
 
-func TestStats(t *testing.T) {
+func TestPasswords(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		pwd := fmt.Sprintf("Password%d", i)
 		index, _ := HashAndStore(pwd)
@@ -16,10 +18,8 @@ func TestStats(t *testing.T) {
 		t.Logf("i = %d, index = %d, stats = %s", i, index, stats)
 
 		hashedPwd, _ := GetHashedPassword(index)
-		if hashedPwd == "" {
-			t.Logf("hashedPwd is empty, as expected")
-		} else {
-			t.Logf("hashedPwd is not empty! It's %s", hashedPwd)
+		if hashedPwd != "" {
+			t.Errorf("hashedPwd is not empty! It's %s", hashedPwd)
 		}
 	}
 
@@ -29,11 +29,14 @@ func TestStats(t *testing.T) {
 	t.Logf("Waited %d milliseconds to complete", duration.Nanoseconds()/1000000)
 
 	for i := 1; i < 11; i++ {
+		pwd := fmt.Sprintf("Password%d", i-1)
+		sha := sha256.New()
+		sha.Write([]byte(pwd))
+		h := base64.StdEncoding.EncodeToString(sha.Sum(nil))
+
 		hashedPwd, _ := GetHashedPassword(i)
-		if hashedPwd == "" {
-			t.Logf("hashedPwd should not be empty!")
-		} else {
-			t.Logf("hashedPwd is now not empty, as expected: %s", hashedPwd)
+		if hashedPwd != h {
+			t.Logf("Retrieved hash %s doesn't match expected value %s", hashedPwd, h)
 		}
 	}
 
