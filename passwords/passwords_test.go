@@ -14,7 +14,7 @@ func TestPasswords(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		pwd := fmt.Sprintf("Password%d", i)
 		index, _ := HashAndStore(pwd)
-		stats := statistics.GetStats()
+		stats, _ := statistics.GetStats()
 		t.Logf("i = %d, index = %d, stats = %s", i, index, stats)
 
 		hashedPwd, _ := GetHashedPassword(index)
@@ -40,6 +40,7 @@ func TestPasswords(t *testing.T) {
 		}
 	}
 
-	t.Logf("Final stats: %s", statistics.GetStats())
+	stats, _ := statistics.GetStats()
+	t.Logf("Final stats: %s", stats)
 
 }

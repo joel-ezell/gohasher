@@ -23,15 +23,14 @@ func TestStats(t *testing.T) {
 	for i := 0; i < numItems; i++ {
 		wg.Add(1)
 		go func(i int, wg *sync.WaitGroup, t *testing.T) {
-			index := NextIndex()
 			average := UpdateAverage(int64(i))
 			total += i
-			t.Logf("i = %d, index = %d, average = %d", i, index, average)
+			t.Logf("i = %d, average = %d", i, average)
 			wg.Done()
 		}(i, &wg, t)
 	}
 	wg.Wait()
-	s := GetStats()
+	s, _ := GetStats()
 	t.Logf("Total stats: %s", s)
 
 	var statsJSON stats

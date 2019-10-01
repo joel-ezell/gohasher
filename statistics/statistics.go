@@ -2,14 +2,14 @@ package statistics
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"math"
 	"sync"
 )
 
 type statistics struct {
-	// Stores the number of requested indices
-	count int
 	// Stores the number of items averaged
 	NumAveraged int `json:"total"`
 	// Stores the average rounded to the nearest integer
@@ -28,21 +28,11 @@ func getInstance() *statistics {
 	if s == nil {
 		once.Do(func() {
 			s = &statistics{
-				count:       0,
 				NumAveraged: 0,
 				Average:     0}
 		})
 	}
 	return s
-}
-
-// NextIndex This thread-safe function increments the current count and returns the resulting value
-func NextIndex() int {
-	stats := getInstance()
-	stats.mu.Lock()
-	defer stats.mu.Unlock()
-	stats.count++
-	return stats.count
 }
 
 // UpdateAverage This thread-safe function calculates and stores a new average, incorporating the provided value.
@@ -51,6 +41,7 @@ func UpdateAverage(newDuration int64) int64 {
 	stats := getInstance()
 	stats.mu.Lock()
 	defer stats.mu.Unlock()
+	// Another way to do this which would have slightly higher accuracy would be to simply maintain a running total and number of averaged values.
 	newTotal := (stats.floatAverage*float64(stats.NumAveraged) + float64(newDuration))
 	stats.NumAveraged++
 	stats.floatAverage = newTotal / float64(stats.NumAveraged)
@@ -59,13 +50,15 @@ func UpdateAverage(newDuration int64) int64 {
 }
 
 // GetStats returns a JSON encoded string representing the statistics
-func GetStats() string {
+func GetStats() (string, error) {
 	stats := getInstance()
 	stats.mu.RLock()
 	defer stats.mu.RUnlock()
 	b, err := json.Marshal(stats)
 	if err != nil {
-		log.Printf("Received error when marshalling JSON: %s", err)
+		msg := fmt.Sprintf("Received error when marshalling JSON: %s", err)
+		log.Printf(msg)
+		return "", errors.New(msg)
 	}
-	return string(b)
+	return string(b), nil
 }
