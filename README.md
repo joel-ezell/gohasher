@@ -1,1 +1,1 @@
-This program hosts web services that enable hashing of numbers and retrieving those hashes.
+This program hosts web services that enable hashing of passwords and retrieving those hashes. It also supports statistics indicating average execution time for the operations. It is capable of supporting a large number of concurrent long-running operations.
